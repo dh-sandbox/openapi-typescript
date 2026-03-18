@@ -37,6 +37,18 @@ jobs:
         with:
           run_install: true
       - run: pnpm test
+      - name: Install coverage provider
+        if: matrix.node-version == 22
+        run: pnpm add -Dw @vitest/coverage-v8
+      - name: Generate coverage
+        if: matrix.node-version == 22
+        run: pnpm exec vitest run --coverage.enabled --coverage.reporter=lcov
+      - name: Upload coverage to Qlty
+        if: matrix.node-version == 22
+        uses: qltysh/qlty-action/coverage@v2
+        with:
+          token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
+          files: coverage/lcov.info
   test-e2e:
     runs-on: ubuntu-latest
     steps:
