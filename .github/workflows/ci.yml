@@ -36,7 +36,28 @@ jobs:
       - uses: pnpm/action-setup@v5
         with:
           run_install: true
+      - name: Install coverage provider
+        if: matrix.node-version == 22
+        run: pnpm add -Dw @vitest/coverage-v8
       - run: pnpm test
+      - name: Generate coverage
+        if: matrix.node-version == 22
+        run: |
+          pnpm --filter openapi-fetch exec vitest run --coverage.enabled --coverage.reporter=lcov
+          pnpm --filter openapi-typescript exec vitest run --coverage.enabled --coverage.reporter=lcov
+          pnpm --filter openapi-react-query exec vitest run --coverage.enabled --coverage.reporter=lcov
+      - name: Merge coverage reports
+        if: matrix.node-version == 22
+        run: |
+          sed 's|^SF:|SF:packages/openapi-fetch/|' packages/openapi-fetch/coverage/lcov.info > coverage-merged.info
+          sed 's|^SF:|SF:packages/openapi-typescript/|' packages/openapi-typescript/coverage/lcov.info >> coverage-merged.info
+          sed 's|^SF:|SF:packages/openapi-react-query/|' packages/openapi-react-query/coverage/lcov.info >> coverage-merged.info
+      - name: Upload coverage to Qlty
+        if: matrix.node-version == 22
+        uses: qltysh/qlty-action/coverage@v2
+        with:
+          token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
+          files: coverage-merged.info
   test-e2e:
     runs-on: ubuntu-latest
     steps:
